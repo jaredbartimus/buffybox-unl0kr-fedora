@@ -1,0 +1,17 @@
+# Pinned upstream source archives for buffybox-unl0kr.spec
+#
+# The COMMIT SHAs are the reproducibility identity:
+#   buffybox  3.6.0  -> d0f52495f7f3afa8839eef4b19f43f4ca1243107
+#   lvgl      9.5.0  -> 85aa60d18b3d5e5588d7b247abf90198f07c8a63
+#
+# The sha256 sums below are a tamper check. Auto-generated forge archives are
+# content-immutable but not contractually byte-stable; if a sum ever drifts,
+# verify the tree against the commit SHA before updating this file. As of the
+# 3.6.0 packaging both sums were confirmed stable across repeated downloads
+# from GitLab and GitHub.
+#
+# Verify with:  sha256sum -c sources.sha256
+# (run from the directory containing the downloaded archives)
+
+b2a31e7c7f0561a40fcd4b08c595daeb51be028b7f31aa5d807523cb63124b0f  buffybox-3.6.0.tar.gz
+b32747cf6568d86a5cb9d30f53970bec1c7a322cb624c4158d4b0e348324146b  lvgl-85aa60d18b3d5e5588d7b247abf90198f07c8a63.tar.gz

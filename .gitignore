@@ -1,0 +1,19 @@
+# Local Claude Code settings
+/.claude/
+
+# Downloaded upstream sources (fetched on demand, verified against sources.sha256)
+/build/
+/*.tar.gz
+/*.tar.bz2
+/*.tar.xz
+/*.src.rpm
+/*.rpm
+
+# rpmbuild trees created by the helper scripts
+/rpmbuild/
+/_topdir/
+
+# Editor / OS noise
+*.swp
+*~
+.DS_Store
