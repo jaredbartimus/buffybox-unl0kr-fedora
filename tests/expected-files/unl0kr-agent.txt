@@ -1,0 +1,7 @@
+/usr/lib/systemd/system/unl0kr-agent.path
+/usr/lib/systemd/system/unl0kr-agent.service
+/usr/libexec/unl0kr-agent
+/usr/share/doc/unl0kr-agent
+/usr/share/doc/unl0kr-agent/ARCHITECTURE-SECURITY.md
+/usr/share/licenses/unl0kr-agent
+/usr/share/licenses/unl0kr-agent/COPYING

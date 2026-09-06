@@ -1,0 +1,10 @@
+/etc/unl0kr.conf
+/etc/unl0kr.conf.d
+/usr/bin/unl0kr
+/usr/share/doc/unl0kr
+/usr/share/doc/unl0kr/CHANGELOG.md
+/usr/share/doc/unl0kr/README.md
+/usr/share/licenses/unl0kr
+/usr/share/licenses/unl0kr/COPYING
+/usr/share/man/man1/unl0kr.1.gz
+/usr/share/man/man5/unl0kr.conf.5.gz
