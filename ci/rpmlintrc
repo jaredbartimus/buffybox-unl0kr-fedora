@@ -1,0 +1,10 @@
+# rpmlint filter list, passed explicitly via `rpmlint -r ci/rpmlintrc`.
+#
+# Kept in ci/ (not the repo root, not named *rpmlintrc there) so rpmlint does
+# NOT auto-discover it: an auto-loaded filter that matches nothing during a
+# bare `rpmlint foo.spec` run is itself reported as an error.
+#
+# Only dictionary false positives are filtered: "framebuffer", "systemd" and
+# "buffyboard" are correct, deliberate technical terms in the descriptions.
+
+addFilter(r"spelling-error .*'(framebuffer|systemd|buffyboard)'")
