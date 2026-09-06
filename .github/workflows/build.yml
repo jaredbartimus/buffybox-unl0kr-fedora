@@ -1,0 +1,79 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  rpm:
+    runs-on: ubuntu-latest
+    container:
+      image: registry.fedoraproject.org/fedora:44
+    steps:
+      - name: Install tooling
+        run: |
+          dnf -y --setopt=install_weak_deps=False install \
+            git-core rpm-build rpmdevtools rpmlint dnf-plugins-core \
+            ShellCheck cpio binutils systemd meson gcc curl diffutils \
+            glibc-langpack-en
+        env:
+          LC_ALL: C.UTF-8
+
+      - uses: actions/checkout@v4
+
+      - name: Static checks (spec + shell)
+        run: |
+          rpmlint buffybox-unl0kr.spec | tee rpmlint-spec.txt
+          shellcheck scripts/*.sh tests/*.sh
+
+      - name: Cache upstream tarballs
+        uses: actions/cache@v4
+        with:
+          path: srccache
+          key: src-${{ hashFiles('sources.sha256') }}
+
+      - name: Fetch + verify pinned sources
+        run: |
+          mkdir -p srccache
+          scripts/fetch-sources.sh "$PWD/srccache"
+
+      - name: rpmdev tree + stage sources
+        run: |
+          rpmdev-setuptree
+          top=$(rpmbuild --eval %_topdir)
+          cp srccache/*.tar.gz "$top/SOURCES/"
+          cp ARCHITECTURE-SECURITY.md "$top/SOURCES/"
+          cp buffybox-unl0kr.spec "$top/SPECS/"
+          echo "TOPDIR=$top" >> "$GITHUB_ENV"
+
+      - name: dnf builddep (BuildRequires completeness)
+        run: dnf -y builddep "$TOPDIR/SPECS/buffybox-unl0kr.spec"
+
+      - name: Build SRPM + RPMs
+        run: |
+          rpmbuild -bs "$TOPDIR/SPECS/buffybox-unl0kr.spec"
+          rpmbuild --rebuild "$TOPDIR"/SRPMS/buffybox-unl0kr-*.src.rpm
+          mkdir -p build/SRPMS build/RPMS
+          cp "$TOPDIR"/SRPMS/*.src.rpm build/SRPMS/
+          find "$TOPDIR/RPMS" -name '*.rpm' -exec cp {} build/RPMS/ \;
+          ls -R build
+
+      - name: Validate produced RPMs
+        run: tests/validate-rpms.sh "$PWD/build/RPMS"
+
+      - name: rpmlint on built packages
+        run: |
+          rpmlint -r ci/rpmlintrc \
+            build/SRPMS/*.src.rpm build/RPMS/*.rpm | tee rpmlint-built.txt
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rpms
+          path: |
+            build/SRPMS/*.src.rpm
+            build/RPMS/*.rpm
+            rpmlint-*.txt
