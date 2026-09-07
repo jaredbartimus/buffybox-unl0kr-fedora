@@ -121,6 +121,7 @@ dnf -y install rpm-build rpmdevtools dnf-plugins-core meson gcc curl
 rpmdev-setuptree
 scripts/fetch-sources.sh "$(rpmbuild --eval %_topdir)/SOURCES"
 cp ARCHITECTURE-SECURITY.md "$(rpmbuild --eval %_topdir)/SOURCES/"
+cp patches/*.patch "$(rpmbuild --eval %_topdir)/SOURCES/"
 cp buffybox-unl0kr.spec     "$(rpmbuild --eval %_topdir)/SPECS/"
 dnf -y builddep buffybox-unl0kr.spec
 rpmbuild -ba "$(rpmbuild --eval %_topdir)/SPECS/buffybox-unl0kr.spec"
@@ -263,7 +264,9 @@ AMDGPU DRM on `/dev/dri/card1`, panel `eDP-1` at 1920x1080, touchscreen
 submission confirmed. The relevant touch kmods are already in the Bazzite
 initramfs. No Ally-specific kernel driver packaging is therefore planned.
 
-**Current BuffyBox has not yet been run on that hardware.** See
+The packaged **BuffyBox 3.6.0 RPMs have now been verified on this hardware** (DRM handoff, touchscreen typing, and password-agent response) during a live graphical session.
+
+However, **actual initramfs/boot-time DRM handoff and LUKS unlock remain untested**. See
 [`BAZZITE-DRACUT-TODO.md`](BAZZITE-DRACUT-TODO.md).
 
 ## 11. Not implemented yet

@@ -215,7 +215,7 @@ Fedora derivative; see README section 10) is exactly that kind of downstream.
 * `%prep` does not run git, does not fetch submodules, does not touch the
   network. `--wrap-mode=nodownload` is implied by `%meson`; there are no
   meson subprojects anyway.
-* No downstream patches, so there is no `patches/` directory to audit.
+* One downstream patch (`0001-unl0kr-agent-watch-request-files-only.patch`) is included to fix a path-unit start-limit crash loop caused by residual response sockets. This patch is intended to be dropped once the fix is present upstream.
 * Scriptlets are only the three `%systemd_*` macros, all on
   `unl0kr-agent.path`. No `%pre`, no filesystem mutation, no daemon restart.
 * LVGL is statically linked into `unl0kr`; the RPM carries
@@ -236,5 +236,4 @@ Fedora derivative; see README section 10) is exactly that kind of downstream.
 3. The in-initramfs pieces `unl0kr` needs at runtime (libinput `.quirks`, XKB
    data, `libinput` udev helpers and rules) are not pulled in by anything in
    this package.
-4. Nothing here has been exercised on the target hardware; §3.3's display
-   behaviour in particular needs a real DRM handoff test.
+4. The packaged BuffyBox 3.6.0 has been exercised on the target hardware (ASUS ROG Ally X / Fedora 44) under a running graphical desktop. The DRM UI rendered successfully, touchscreen input worked, `unl0kr -n` returned exact bytes without trailing newlines, and the agent answered a synthetic password request. `autohide=false` is needed for immediate OSK visibility, and `haptic_feedback=false` avoids a continuous vibration bug on this handheld. Normal invocation did not visibly take over the display, so actual boot-time DRM handoff in the initramfs remains unproven.
