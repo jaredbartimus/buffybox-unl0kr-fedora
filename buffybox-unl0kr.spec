@@ -35,7 +35,7 @@ Source1:        https://github.com/lvgl/lvgl/archive/%{lvgl_commit}.tar.gz#/lvgl
 # Downstream documentation shipped in the unl0kr-agent package.
 Source2:        ARCHITECTURE-SECURITY.md
 
-Patch0:         patches/0001-unl0kr-agent-watch-request-files-only.patch
+Patch0:         0001-unl0kr-agent-watch-request-files-only.patch
 
 # Downstream patch: watch only for actual ask-password request files, avoiding
 # a start-limit-hit crash loop when only residual response sockets remain.

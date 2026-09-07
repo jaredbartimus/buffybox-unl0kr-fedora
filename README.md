@@ -100,6 +100,7 @@ There is currently **one downstream patch** (`0001-unl0kr-agent-watch-request-fi
 It changes the `unl0kr-agent.path` unit to watch for actual `ask.*` password request files (`PathExistsGlob=/run/systemd/ask-password/ask.*`) instead of just checking if the directory is not empty (`DirectoryNotEmpty=/run/systemd/ask-password`). The original behavior triggered an activation crash-loop (hitting the systemd start-limit) when aborted requests left behind residual `sck.*` response sockets.
 
 This patch is intended to be dropped once the fix is merged in a future upstream release.
+If a future automated version bump pulls in the upstream fix, the RPM build will fail cleanly when `%autopatch` cannot apply. A maintainer must then remove the downstream patch and bump the spec.
 
 The historical Unl0kr defects (minui.c compiled when disabled; passphrase printed with a trailing newline) and the Debian 32-bit uinput patch are all fixed upstream in 3.6.0.
 
