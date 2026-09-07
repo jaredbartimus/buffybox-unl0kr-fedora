@@ -5,7 +5,23 @@ Integration with dracut must be validated to correctly unlock the root LUKS volu
 ## 1. Initramfs graphical capability
 [X] Bazzite stock initramfs contains the kernel modules already observed as required for the Ally X touchscreen/AMDGPU path.
 [X] Synthetic Fedora 44 dracut image contains the packaged libinput and XKB user-space runtime assets.
+[X] Bazzite Deck bootc Phase 1 container composition and synthetic dracut test validate target userspace integration and bootc structural compliance.
 [ ] Verify on the real Ally X initramfs that the NVTK0603 touchscreen enumerates and receives `ID_INPUT_TOUCHSCREEN=1`.
+
+### Test Proof Boundaries
+
+To prevent false confidence and keep CI fast and reliable, verification is separated into distinct tiers:
+
+* **Fedora 44 synthetic test (`tests/test-dracut-image.sh`)**:
+  Validates the generic Fedora RPM and dracut package contract in a clean Fedora 44 container.
+* **Bazzite Deck bootc test (`tests/test-dracut-bazzite.sh` & `ci/Containerfile.bazzite`)**:
+  Validates local RPM installation compatibility against real Bazzite Deck userspace, Bazzite dracut module semantics, password-agent composition, runtime userspace dependencies (libinput, XKB, udev), enablement of `unl0kr-agent.path`, absence of hardcoded DRM card assumptions, and passes `bootc container lint` for structural validation.
+  *Boundary*: Does **not** prove kernel-module inclusion in the generated initramfs or bootability of the image.
+* **QCOW2 Phase 2 (Deferred)**:
+  Validates actual virtual firmware/UEFI, kernel, initramfs, and early systemd boot-path smoke test in a CI-friendly VM.
+* **Physical Ally X hardware test**:
+  Validates actual AMDGPU/eDP DRM ownership and handoff, touchscreen/I2C enumeration and touch events, DRM device selection, Plymouth coexistence, haptic feedback, physical keyboard fallback, and system power/suspend behavior.
+
 
 ## 2. Dracut module: composition implemented, hardware integration not yet validated
 

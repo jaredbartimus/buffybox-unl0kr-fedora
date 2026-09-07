@@ -85,3 +85,97 @@ jobs:
             build/SRPMS/*.src.rpm
             build/RPMS/*.rpm
             rpmlint-*.txt
+
+  bazzite-bootc-test:
+    needs: rpm
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Maximize build disk space
+        uses: ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6
+
+      - uses: actions/checkout@v4
+
+      - name: Install required host tooling
+        run: |
+          missing_tools=()
+          for tool in skopeo jq podman; do
+            if ! command -v "$tool" >/dev/null 2>&1; then
+              missing_tools+=("$tool")
+            fi
+          done
+          if [ "${#missing_tools[@]}" -gt 0 ]; then
+            echo "Installing missing host tools: ${missing_tools[*]}"
+            sudo apt-get update
+            sudo apt-get install -y "${missing_tools[@]}"
+          fi
+
+      - name: Tool versions and disk space (pre-build)
+        run: |
+          podman --version
+          skopeo --version
+          df -h
+
+      - name: Download RPM artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: rpms
+          path: staging-rpms
+
+      - name: Stage runtime RPMs
+        run: |
+          mkdir -p target-rpms
+          echo "Contents of staging-rpms:"
+          find staging-rpms -maxdepth 3 -ls || true
+
+          for pkg in unl0kr unl0kr-agent unl0kr-dracut; do
+            matches=()
+            while IFS= read -r -d '' f; do
+              case "$(basename "$f")" in
+                *-debuginfo-*|*-debugsource-*) continue ;;
+                *) matches+=("$f") ;;
+              esac
+            done < <(find staging-rpms -type f -name "${pkg}-[0-9]*.rpm" -print0)
+
+            if [ "${#matches[@]}" -ne 1 ]; then
+              echo "Error: expected exactly 1 match for ${pkg}-[0-9]*.rpm, found ${#matches[@]}: ${matches[*]:-none}" >&2
+              exit 1
+            fi
+            echo "Selected ${pkg}: ${matches[0]}"
+            cp "${matches[0]}" target-rpms/
+          done
+
+          echo "Staged runtime RPMs in target-rpms/:"
+          ls -la target-rpms/
+
+          count=$(find target-rpms -maxdepth 1 -name '*.rpm' | wc -l)
+          if [ "$count" -ne 3 ]; then
+            echo "Error: expected exactly 3 RPMs staged, found $count" >&2
+            exit 1
+          fi
+
+      - name: Resolve base image digest
+        id: resolve-base
+        run: |
+          base="ghcr.io/ublue-os/bazzite-deck:stable"
+          echo "Resolving digest for human-facing base tag: ${base}"
+          digest="$(skopeo inspect "docker://${base}" | jq -r .Digest)"
+          if [ -z "$digest" ] || [ "$digest" = "null" ]; then
+            echo "Error: failed to resolve digest for ${base}" >&2
+            exit 1
+          fi
+          base_image="ghcr.io/ublue-os/bazzite-deck@${digest}"
+          echo "Human-facing tag: ${base}"
+          echo "Resolved immutable reference: ${base_image}"
+          echo "base_image=${base_image}" >> "$GITHUB_OUTPUT"
+
+      - name: Build Bazzite derived image and run container smoke test
+        run: |
+          podman build \
+            --build-arg BASE_IMAGE="${{ steps.resolve-base.outputs.base_image }}" \
+            -f ci/Containerfile.bazzite \
+            -t bazzite-deck-test:local \
+            .
+
+      - name: Disk space (post-build)
+        if: always()
+        run: df -h
