@@ -156,7 +156,7 @@ Before=paths.target cryptsetup.target
 Conflicts=emergency.service
 Before=emergency.service shutdown.target
 [Path]
-DirectoryNotEmpty=/run/systemd/ask-password
+PathExistsGlob=/run/systemd/ask-password/ask.*
 MakeDirectory=yes
 [Install]
 WantedBy=paths.target
@@ -167,8 +167,7 @@ with the **same `ConditionPathExists=!/run/plymouth/pid`** and **no `[Install]`
 section**. The `.path` unit is therefore the only thing you enable, and the
 scriptlets act on `unl0kr-agent.path`.
 
-This mirrors `systemd-ask-password-console.path`
-(`DirectoryNotEmpty=/run/systemd/ask-password`, `WantedBy=paths.target`).
+This unit uses a downstream patch to replace `DirectoryNotEmpty=/run/systemd/ask-password` with `PathExistsGlob=/run/systemd/ask-password/ask.*`. The original `DirectoryNotEmpty` condition also matches residual `sck.*` reply sockets left behind by timed-out or cancelled requests. This causes repeated activation of the oneshot agent until the systemd start-limit is hit, because the path unit immediately triggers again when only sockets remain. `PathExistsGlob` watches only actual password requests.
 
 ### 3.3 Coexistence with the stock agents — no masking needed
 

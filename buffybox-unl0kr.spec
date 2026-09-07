@@ -15,7 +15,7 @@
 
 Name:           buffybox-unl0kr
 Version:        3.6.0
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Touchscreen disk unlocker for the initramfs (BuffyBox / Unl0kr)
 
 # Project code (buffybox, squeek2lvgl): GPL-3.0-or-later
@@ -35,10 +35,13 @@ Source1:        https://github.com/lvgl/lvgl/archive/%{lvgl_commit}.tar.gz#/lvgl
 # Downstream documentation shipped in the unl0kr-agent package.
 Source2:        ARCHITECTURE-SECURITY.md
 
-# No downstream patches. The two historical Unl0kr defects (minui.c compiled
-# when disabled; passphrase printed with a trailing newline) are both fixed
-# in current BuffyBox, and the one still-relevant Debian patch is merged
-# upstream in 3.6.0. See README.md and ARCHITECTURE-SECURITY.md.
+Patch0:         patches/0001-unl0kr-agent-watch-request-files-only.patch
+
+# Downstream patch: watch only for actual ask-password request files, avoiding
+# a start-limit-hit crash loop when only residual response sockets remain.
+# This patch is intended to be dropped once the fix is available in the packaged
+# upstream revision. The historical Unl0kr defects and Debian patch are all
+# upstream as of 3.6.0. See README.md and ARCHITECTURE-SECURITY.md.
 
 BuildRequires:  gcc
 BuildRequires:  meson
@@ -97,6 +100,7 @@ ARCHITECTURE-SECURITY.md in this package's documentation directory.
 
 %prep
 %setup -q -n buffybox-%{version} -a 1
+%autopatch -p1
 # BuffyBox vendors lvgl as a git submodule; the tag archive ships an empty
 # lvgl/ directory. Replace it with the pinned lvgl tree (Source1).
 rm -rf lvgl
@@ -177,6 +181,10 @@ test "$fail" -eq 0
 %systemd_postun unl0kr-agent.path
 
 %changelog
+* Sun Sep 06 2026 Jared <jared555@gmail.com> - 3.6.0-2
+- Add downstream patch to watch only ask-password request files
+- Fixes start-limit-hit on unl0kr-agent when response sockets are abandoned
+
 * Sun Sep 06 2026 Jared <jared555@gmail.com> - 3.6.0-1
 - Initial Fedora packaging of the Unl0kr subset of BuffyBox 3.6.0
 - lvgl bundled at 85aa60d18b3d5e5588d7b247abf90198f07c8a63 (upstream v9.5.0)

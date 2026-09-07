@@ -48,6 +48,7 @@ jobs:
           top=$(rpmbuild --eval %_topdir)
           cp srccache/*.tar.gz "$top/SOURCES/"
           cp ARCHITECTURE-SECURITY.md "$top/SOURCES/"
+          [ -d patches ] && cp patches/* "$top/SOURCES/"
           cp buffybox-unl0kr.spec "$top/SPECS/"
           echo "TOPDIR=$top" >> "$GITHUB_ENV"
 

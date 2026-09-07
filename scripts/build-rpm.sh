@@ -45,6 +45,7 @@ exec "$engine" run --rm \
 	scripts/fetch-sources.sh "${topdir}/SOURCES"
 	cp -v buffybox-unl0kr.spec "${topdir}/SPECS/"
 	cp -v ARCHITECTURE-SECURITY.md "${topdir}/SOURCES/"
+	[ -d patches ] && cp patches/* "${topdir}/SOURCES/"
 
 	echo "::: rpmbuild -bs (SRPM)"
 	rpmbuild -bs "${topdir}/SPECS/buffybox-unl0kr.spec"

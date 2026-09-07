@@ -1,0 +1,31 @@
+From: Jared <jared555@gmail.com>
+Date: Sun, 6 Sep 2026 23:30:00 -0500
+Subject: [PATCH] fix: watch only ask-password request files
+
+The previous `DirectoryNotEmpty=` condition also matches residual `sck.*`
+reply sockets. Those sockets can persist after `ask.*` request files
+disappear (e.g. on timeouts or cancellations).
+
+This causes repeated activation of the oneshot unl0kr-agent until
+the systemd start-limit is hit, because the path unit immediately
+triggers again on the remaining sockets.
+
+Using `PathExistsGlob=/run/systemd/ask-password/ask.*` watches only
+the actual password request files, preventing the retrigger loop
+when only sockets remain.
+---
+ unl0kr/unl0kr-agent.path | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/unl0kr/unl0kr-agent.path b/unl0kr/unl0kr-agent.path
+--- a/unl0kr/unl0kr-agent.path
++++ b/unl0kr/unl0kr-agent.path
+@@ -11,7 +11,7 @@
+ Before=shutdown.target
+ 
+ [Path]
+-DirectoryNotEmpty=/run/systemd/ask-password
++PathExistsGlob=/run/systemd/ask-password/ask.*
+ MakeDirectory=yes
+ 
+ [Install]

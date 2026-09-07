@@ -93,20 +93,15 @@ is invisible to installed systems, so switching later to a full `buffybox` SRPM
 is a drop-in replacement - no `Obsoletes`/`Provides` churn on the binary
 packages, only the COPR package entry changes.
 
-### Why no `patches/` directory
+### Downstream patches
 
-There are **zero downstream patches**. The two historical Unl0kr defects are
-both already fixed upstream, verified by inspection of 3.6.0:
+There is currently **one downstream patch** (`0001-unl0kr-agent-watch-request-files-only.patch`) carried in this repository.
 
-* **`minui.c` compiled when disabled** - gone. `find-lvgl-sources.sh` only
-  globs `lvgl/src/**/*.c` for LVGL 9; there is no `lv_drivers` / `minui.c` in
-  the tree.
-* **passphrase printed with a trailing newline** - gone. `unl0kr/main.c:366`
-  gates the newline behind `-n`, and `unl0kr-agent.c:431` always passes `-n`,
-  so the agent delivers exactly the typed bytes.
+It changes the `unl0kr-agent.path` unit to watch for actual `ask.*` password request files (`PathExistsGlob=/run/systemd/ask-password/ask.*`) instead of just checking if the directory is not empty (`DirectoryNotEmpty=/run/systemd/ask-password`). The original behavior triggered an activation crash-loop (hitting the systemd start-limit) when aborted requests left behind residual `sck.*` response sockets.
 
-Debian's one still-relevant patch (a 32-bit `uinput` build fix) is merged
-upstream in 3.6.0.
+This patch is intended to be dropped once the fix is merged in a future upstream release.
+
+The historical Unl0kr defects (minui.c compiled when disabled; passphrase printed with a trailing newline) and the Debian 32-bit uinput patch are all fixed upstream in 3.6.0.
 
 ## 6. Building locally
 

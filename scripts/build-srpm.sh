@@ -24,6 +24,7 @@ mkdir -p "$topdir"/{SOURCES,SPECS,SRPMS}
 
 # Non-tarball Source files referenced by the spec.
 cp "${repo_root}/ARCHITECTURE-SECURITY.md" "${topdir}/SOURCES/"
+[ -d "${repo_root}/patches" ] && cp "${repo_root}"/patches/* "${topdir}/SOURCES/"
 cp "$spec" "${topdir}/SPECS/"
 
 rpmbuild -bs \
