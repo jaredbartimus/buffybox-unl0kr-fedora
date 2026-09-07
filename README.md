@@ -264,7 +264,7 @@ AMDGPU DRM on `/dev/dri/card1`, panel `eDP-1` at 1920x1080, touchscreen
 submission confirmed. The relevant touch kmods are already in the Bazzite
 initramfs. No Ally-specific kernel driver packaging is therefore planned.
 
-The packaged **BuffyBox 3.6.0 RPMs have now been verified on this hardware** (DRM handoff, touchscreen typing, and password-agent response) during a live graphical session.
+The packaged **BuffyBox 3.6.0 RPMs have now been verified on this hardware** (DRM rendering, touchscreen typing, and password-agent response) during a live graphical session.
 
 However, **actual initramfs/boot-time DRM handoff and LUKS unlock remain untested**. See
 [`BAZZITE-DRACUT-TODO.md`](BAZZITE-DRACUT-TODO.md).
