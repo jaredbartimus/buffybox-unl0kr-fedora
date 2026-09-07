@@ -91,6 +91,26 @@ Bazzite is image-based. Work out how the dracut module and any
   is needed for the module to be picked up, and that this is the user's
   decision, made on their machine, not here.
 
+#### Troubleshooting: Stale rpm-ostree metadata
+
+On Bazzite, `dnf repoquery` may see a newer COPR build while `rpm-ostree` continues resolving an older layered RPM because its own `rpm-md` cache is stale.
+
+If `rpm-ostree` repeatedly selects an older version than expected (for example, if DNF5 sees `unl0kr-3.6.0-2.fc44` but `rpm-ostree` selects `3.6.0-1`), force a metadata refresh with this recovery sequence:
+
+```bash
+sudo rpm-ostree cleanup -m
+sudo rpm-ostree reload
+sudo rpm-ostree refresh-md
+```
+
+Then verify the package selection before making changes:
+
+```bash
+sudo rpm-ostree install --dry-run <package>
+```
+
+*(In one reproduced instance, before cleanup, `rpm-ostree` showed COPR metadata generated at `2026-09-07T03:04:19Z` with 7 solvables. After the cleanup/refresh, it showed `2026-09-07T05:26:25Z` with 14 solvables, and the dry run correctly selected both `unl0kr-3.6.0-2.fc44.x86_64` and `unl0kr-agent-3.6.0-2.fc44.x86_64`.)*
+
 ### 4. Coexistence with the stock console agent, on hardware
 
 `ARCHITECTURE-SECURITY.md` §3.3 argues the password-agent protocol lets Unl0kr
