@@ -26,7 +26,7 @@ jobs:
       - name: Static checks (spec + shell)
         run: |
           rpmlint buffybox-unl0kr.spec | tee rpmlint-spec.txt
-          shellcheck scripts/*.sh tests/*.sh
+          shellcheck scripts/*.sh tests/*.sh dracut/module-setup.sh
 
       - name: Unit tests (upstream-check, offline)
         run: python3 -m unittest discover -s tests -p 'test_*.py' -v
@@ -48,6 +48,7 @@ jobs:
           top=$(rpmbuild --eval %_topdir)
           cp srccache/*.tar.gz "$top/SOURCES/"
           cp ARCHITECTURE-SECURITY.md "$top/SOURCES/"
+          cp dracut/module-setup.sh "$top/SOURCES/"
           [ -d patches ] && cp patches/*.patch "$top/SOURCES/"
           cp buffybox-unl0kr.spec "$top/SPECS/"
           echo "TOPDIR=$top" >> "$GITHUB_ENV"
@@ -65,7 +66,10 @@ jobs:
           ls -R build
 
       - name: Validate produced RPMs
-        run: tests/validate-rpms.sh "$PWD/build/RPMS"
+        run: tests/validate-rpms.sh "$PWD/build/RPMS" "$PWD/build/SRPMS"
+
+      - name: Test dracut initramfs composition
+        run: tests/test-dracut-image.sh "$PWD/build/RPMS"
 
       - name: rpmlint on built packages
         run: |

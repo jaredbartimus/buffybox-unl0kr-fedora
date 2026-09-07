@@ -1,11 +1,13 @@
-# Not implemented yet: Bazzite initramfs / dracut integration
+# Bazzite initramfs / dracut integration status
 
-This repository packages Unl0kr into Fedora RPMs. It does **not** wire Unl0kr
-into the boot process. That is a deliberately separate phase because it touches
-the initramfs and the encrypted-root unlock path on a real machine.
+Integration with dracut must be validated to correctly unlock the root LUKS volume during the initial Fedora Atomic boot phase (the initramfs).
 
-Nothing in this repo modifies `/etc/crypttab`, LUKS keyslots, the bootloader,
-Secure Boot, the TPM, `rpm-ostree` initramfs state, or the running host.
+## 1. Initramfs graphical capability
+[X] Bazzite stock initramfs contains the kernel modules already observed as required for the Ally X touchscreen/AMDGPU path.
+[X] Synthetic Fedora 44 dracut image contains the packaged libinput and XKB user-space runtime assets.
+[ ] Verify on the real Ally X initramfs that the NVTK0603 touchscreen enumerates and receives `ID_INPUT_TOUCHSCREEN=1`.
+
+## 2. Dracut module: composition implemented, hardware integration not yet validated
 
 The hardware target for the later phase is an **ASUS ROG Ally X running Bazzite
 (Fedora 44 base)**. The packaged BuffyBox 3.6.0 RPMs have been tested on that
@@ -50,7 +52,7 @@ Options to evaluate in the next phase:
 * raising it upstream - e.g. a build/config switch to target
   "no plymouth in this initramfs" deployments.
 
-### 2. There is no dracut module - it has to be written
+### 2. Dracut module: composition implemented, hardware integration not yet validated
 
 Upstream ships integration for **other** init systems only:
 
@@ -60,25 +62,17 @@ Upstream ships integration for **other** init systems only:
 Fedora/Bazzite needs a `dracut` module (`/usr/lib/dracut/modules.d/XXunl0kr/`)
 written from scratch:
 
-* `module-setup.sh` with `install()` / `installkernel()` / `depends()`;
+* `module-setup.sh` with `install()` / `depends()`;
 * pull in the `unl0kr` binary and `/etc/unl0kr.conf`;
-* pull in the pieces Unl0kr needs at runtime that **no package dependency
-  currently drags in**:
+* pull in the pieces Unl0kr needs at runtime:
   * libinput quirks: `/usr/share/libinput/*.quirks`,
   * libinput udev helpers + rules:
     `/usr/lib/udev/libinput-*`, `/usr/lib/udev/rules.d/*-libinput-*.rules`,
-  * XKB data: `/usr/share/X11/xkb` (or the compiled keymap),
-  * `hid-multitouch` / `i2c-hid*` kmods (already present on the Ally X image,
-    but `installkernel()` should request them for portability);
-* decide agent vs. keyscript:
-  * **agent**: install `unl0kr-agent` + the two units into the initramfs and
-    resolve item 1;
-  * **keyscript**: a `crypttab` `keyscript=` wrapper that runs
-    `unl0kr -n` and feeds stdout to cryptsetup (mirrors what Debian's
-    `unl0kr-keyscript` / the old osk-sdl integration did).
+  * XKB data: `/usr/share/X11/xkb` (or the compiled keymap).
+* agent units: install `unl0kr-agent` + the two units into the initramfs and
+  resolve item 1.
 
-Ship it as a **separate** `unl0kr-dracut` subpackage or a separate repo; do not
-fold it into `unl0kr` until it is proven on hardware.
+The module is strictly opt-in: installing the RPM does not add the module to an initramfs or regenerate the host initramfs. When the user explicitly includes `55unl0kr` in an initramfs build, the module enables `unl0kr-agent.path` inside that generated image.
 
 ### 3. rpm-ostree / ostree layering
 
@@ -134,7 +128,7 @@ it by using the tag archive + a separately pinned lvgl tarball, but Debian's
 
 * actual initramfs DRM handoff;
 * Plymouth interaction at boot;
-* complete dracut module;
+* runtime completeness of the dracut payload on the Ally X;
 * end-to-end cryptsetup/LUKS root unlock;
 * stock-agent/display coexistence in initramfs;
 * physical keyboard fallback during actual early boot;

@@ -121,8 +121,9 @@ dnf -y install rpm-build rpmdevtools dnf-plugins-core meson gcc curl
 rpmdev-setuptree
 scripts/fetch-sources.sh "$(rpmbuild --eval %_topdir)/SOURCES"
 cp ARCHITECTURE-SECURITY.md "$(rpmbuild --eval %_topdir)/SOURCES/"
+cp dracut/module-setup.sh "$(rpmbuild --eval %_topdir)/SOURCES/"
 cp patches/*.patch "$(rpmbuild --eval %_topdir)/SOURCES/"
-cp buffybox-unl0kr.spec     "$(rpmbuild --eval %_topdir)/SPECS/"
+cp buffybox-unl0kr.spec "$(rpmbuild --eval %_topdir)/SPECS/"
 dnf -y builddep buffybox-unl0kr.spec
 rpmbuild -ba "$(rpmbuild --eval %_topdir)/SPECS/buffybox-unl0kr.spec"
 ```
