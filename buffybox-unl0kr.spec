@@ -15,7 +15,7 @@
 
 Name:           buffybox-unl0kr
 Version:        3.6.0
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        Touchscreen disk unlocker for the initramfs (BuffyBox / Unl0kr)
 
 # Project code (buffybox, squeek2lvgl): GPL-3.0-or-later
@@ -33,7 +33,10 @@ URL:            https://gitlab.postmarketos.org/postmarketOS/buffybox
 Source0:        https://gitlab.postmarketos.org/postmarketOS/buffybox/-/archive/%{version}/buffybox-%{version}.tar.gz
 Source1:        https://github.com/lvgl/lvgl/archive/%{lvgl_commit}.tar.gz#/lvgl-%{lvgl_commit}.tar.gz
 # Downstream documentation shipped in the unl0kr-agent package.
+# Source2: ARCHITECTURE-SECURITY.md
 Source2:        ARCHITECTURE-SECURITY.md
+# Source3: dracut module for initramfs integration
+Source3:        module-setup.sh
 
 Patch0:         0001-unl0kr-agent-watch-request-files-only.patch
 
@@ -80,6 +83,18 @@ This package contains the unl0kr binary, its configuration file and manual
 pages. It does not enable anything on its own - integrating unl0kr into the
 boot process is a separate, distribution-specific step.
 
+%package -n unl0kr-dracut
+Summary:        Dracut module for the Unl0kr initramfs disk unlocker
+Requires:       dracut
+Requires:       unl0kr%{?_isa} = %{version}-%{release}
+Requires:       unl0kr-agent%{?_isa} = %{version}-%{release}
+
+%description -n unl0kr-dracut
+This package provides a dracut module (55unl0kr) to place the Unl0kr
+disk unlocker and its systemd password agent into an initramfs.
+It is strictly opt-in and does not automatically configure DRM or
+enable itself in the boot process.
+
 %package -n unl0kr-agent
 Summary:        Password agent that unlocks disks with unl0kr
 License:        GPL-3.0-or-later
@@ -109,6 +124,7 @@ mv lvgl-%{lvgl_commit} lvgl
 test -x find-lvgl-sources.sh
 # Stage downstream docs into the build tree so the package can ship them.
 cp -p %{SOURCE2} .
+cp -p %{SOURCE3} .
 
 %build
 # Do NOT override b_ndebug. Upstream sets b_ndebug=if-release; combined with
@@ -129,6 +145,10 @@ cp -p %{SOURCE2} .
 # Upstream ships no vendor config in this directory.
 install -d -m 0755 %{buildroot}%{_sysconfdir}/unl0kr.conf.d
 
+# Dracut module
+install -d -m 0755 %{buildroot}%{_prefix}/lib/dracut/modules.d/55unl0kr
+install -p -m 0755 module-setup.sh %{buildroot}%{_prefix}/lib/dracut/modules.d/55unl0kr/module-setup.sh
+
 %check
 # Two invariants, checked early so a bad upstream change fails the build:
 #   1. every file we expect from install_tag 'unl0kr' is present
@@ -142,7 +162,9 @@ for f in \
     .%{_sysconfdir}/unl0kr.conf.d \
     .%{_libexecdir}/unl0kr-agent \
     .%{_unitdir}/unl0kr-agent.path \
-    .%{_unitdir}/unl0kr-agent.service; do
+    .%{_unitdir}/unl0kr-agent.service \
+    .%{_prefix}/lib/dracut/modules.d/55unl0kr/module-setup.sh \
+    ; do
     if [ ! -e "$f" ]; then echo "MISSING: $f" >&2; fail=1; fi
 done
 for m in .%{_mandir}/man1/unl0kr.1 .%{_mandir}/man5/unl0kr.conf.5; do
@@ -161,6 +183,9 @@ test "$fail" -eq 0
 %dir %{_sysconfdir}/unl0kr.conf.d
 %{_mandir}/man1/unl0kr.1*
 %{_mandir}/man5/unl0kr.conf.5*
+
+%files -n unl0kr-dracut
+%{_prefix}/lib/dracut/modules.d/55unl0kr/
 
 %files -n unl0kr-agent
 %license COPYING
@@ -181,6 +206,9 @@ test "$fail" -eq 0
 %systemd_postun unl0kr-agent.path
 
 %changelog
+* Mon Sep 07 2026 Jared <jared555@gmail.com> - 3.6.0-3
+- Add unl0kr-dracut subpackage with dracut module 55unl0kr
+
 * Sun Sep 06 2026 Jared <jared555@gmail.com> - 3.6.0-2
 - Add downstream patch to watch only ask-password request files
 - Fixes start-limit-hit on unl0kr-agent when response sockets are abandoned
