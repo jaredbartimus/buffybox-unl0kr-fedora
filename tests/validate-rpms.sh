@@ -10,6 +10,7 @@
 # checks: cpio, binutils, systemd).
 
 set -euo pipefail
+export LC_ALL=C
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 rpmdir="${1:-${repo_root}/build/RPMS}"
@@ -99,15 +100,20 @@ if have cpio && have strings; then
 	assert_ok "agent execs /usr/bin/unl0kr" \
 		grep_q -x '/usr/bin/unl0kr' <(strings -a "$w/usr/libexec/unl0kr-agent")
 
-	echo "== 8. systemd unit verification =="
+	echo "== 8. unl0kr-agent.path regression check =="
+	pathunit="$w/usr/lib/systemd/system/unl0kr-agent.path"
+	assert_ok "path unit watches request files only" \
+		grep_q '^PathExistsGlob=/run/systemd/ask-password/ask\.\*$' "$pathunit"
+	assert_no "path unit does not watch the raw directory" \
+		grep_q 'DirectoryNotEmpty=' "$pathunit"
+
+	echo "== 9. systemd unit verification =="
 	if have systemd-analyze; then
-		mkdir -p "$w/units" /usr/libexec
-		cp "$w"/usr/lib/systemd/system/unl0kr-agent.* "$w/units/"
-		# stage the binary so 'verify' does not false-flag the ExecStart path
-		install -m0755 "$w/usr/libexec/unl0kr-agent" /usr/libexec/unl0kr-agent
-		export SYSTEMD_UNIT_PATH="$w/units:/usr/lib/systemd/system"
-		assert_ok "unl0kr-agent.path verifies"    systemd-analyze verify "$w/units/unl0kr-agent.path"
-		assert_ok "unl0kr-agent.service verifies" systemd-analyze verify "$w/units/unl0kr-agent.service"
+		# systemd-analyze verify --root=... treats the root directory as the system
+		# root. We pass the extracted rpm tree so it verifies the unit files
+		# without polluting or requiring privileges on the host filesystem.
+		assert_ok "unl0kr-agent.path verifies"    systemd-analyze --root="$w" verify unl0kr-agent.path
+		assert_ok "unl0kr-agent.service verifies" systemd-analyze --root="$w" verify unl0kr-agent.service
 	else
 		echo "  skip: systemd-analyze not available"
 	fi

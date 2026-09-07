@@ -8,7 +8,7 @@ Nothing in this repo modifies `/etc/crypttab`, LUKS keyslots, the bootloader,
 Secure Boot, the TPM, `rpm-ostree` initramfs state, or the running host.
 
 The hardware target for the later phase is an **ASUS ROG Ally X running Bazzite
-(Fedora 44 base)**. An older standalone Unl0kr build was hand-tested on that
+(Fedora 44 base)**. The packaged BuffyBox 3.6.0 RPMs have been tested on that
 device and the following were confirmed working, which is why no Ally-specific
 kernel driver packaging is planned:
 
@@ -21,8 +21,9 @@ kernel driver packaging is planned:
 | Already in Bazzite initramfs | `hid-multitouch.ko`, `i2c-hid.ko`, `i2c-hid-acpi.ko` |
 | Built into Bazzite kernel | `i2c_designware_platform`, `i2c_designware_core`, `evdev` |
 
-Touchscreen typing and passphrase submission were verified on that device with
-the older build.
+During a live graphical session on this hardware, the packaged `/usr/bin/unl0kr` rendered successfully via DRM/KMS, touchscreen typing and submission worked, `unl0kr -n` returned exactly the entered bytes with no trailing newline, and the packaged `/usr/libexec/unl0kr-agent` successfully answered a synthetic `systemd-ask-password` request. `autohide=false` is needed for immediate OSK visibility on this device, and `haptic_feedback=false` is needed to avoid a continuous vibration issue. Normal systemd-service invocation under the running desktop did not visibly take over the display.
+
+A downstream patch (`0001-unl0kr-agent-watch-request-files-only.patch`) has been added to fix a path-unit start-limit crash loop. When password requests are timed out or cancelled, residual `sck.*` response sockets remain. The patch updates `unl0kr-agent.path` to use `PathExistsGlob` on `ask.*` files rather than `DirectoryNotEmpty`, preventing a retrigger loop on the leftover sockets.
 
 ---
 
@@ -96,8 +97,7 @@ Bazzite is image-based. Work out how the dracut module and any
 and `systemd-ask-password-console` coexist (first valid answer wins) and that
 the only real conflict is who owns the display. That needs a real test:
 
-* Unl0kr taking DRM master on `/dev/dri/card1` while the console agent is also
-  active;
+* stock-agent/display coexistence in initramfs;
 * confirming a physical keyboard still types into Unl0kr (libinput + XKB path);
 * confirming `Ctrl+Alt+Fn` / fallback to the plain console prompt still works
   if Unl0kr is killed.
@@ -112,8 +112,10 @@ it by using the tag archive + a separately pinned lvgl tarball, but Debian's
 
 ### 6. Things that still need hardware to verify
 
-* DRM handoff / modeset on the Ally X panel from within the initramfs;
-* touch input latency and the on-screen keyboard at 1920x1080;
-* that the passphrase reaches cryptsetup as exactly the typed bytes
-  (`unl0kr -n` + agent `+`-prefixed datagram - verified in code, not on metal);
-* power/suspend behaviour if the unlock prompt sits idle.
+* actual initramfs DRM handoff;
+* Plymouth interaction at boot;
+* complete dracut module;
+* end-to-end cryptsetup/LUKS root unlock;
+* stock-agent/display coexistence in initramfs;
+* physical keyboard fallback during actual early boot;
+* power/suspend behavior while waiting at initramfs prompt.
