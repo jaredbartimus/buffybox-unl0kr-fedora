@@ -17,7 +17,7 @@ jobs:
           dnf -y --setopt=install_weak_deps=False install \
             git-core rpm-build rpmdevtools rpmlint dnf-plugins-core \
             ShellCheck cpio binutils systemd meson gcc curl diffutils \
-            glibc-langpack-en
+            glibc-langpack-en python3
         env:
           LC_ALL: C.UTF-8
 
@@ -27,6 +27,9 @@ jobs:
         run: |
           rpmlint buffybox-unl0kr.spec | tee rpmlint-spec.txt
           shellcheck scripts/*.sh tests/*.sh
+
+      - name: Unit tests (upstream-check, offline)
+        run: python3 -m unittest discover -s tests -p 'test_*.py' -v
 
       - name: Cache upstream tarballs
         uses: actions/cache@v4
