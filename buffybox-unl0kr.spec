@@ -85,9 +85,10 @@ Requires:       unl0kr%{?_isa} = %{version}-%{release}
 
 %description -n unl0kr-agent
 A systemd password agent that answers passphrase requests from
-/run/systemd/ask-password by launching unl0kr. It is installed disabled;
-enabling unl0kr-agent.path changes how disk-encryption passphrases are
-requested at boot and is an administrator decision.
+/run/systemd/ask-password by launching unl0kr. It ships no systemd preset, so
+on a stock Fedora install unl0kr-agent.path is not enabled; enabling it
+changes how disk-encryption passphrases are requested at boot and is an
+administrator (or downstream preset-policy) decision.
 
 The agent runs as root (it must read root-owned request files and open
 input and DRM devices) and coexists with the stock systemd password

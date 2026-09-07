@@ -14,6 +14,10 @@
 /rpmbuild/
 /_topdir/
 
+# Python bytecode cache (scripts/ + tests/)
+__pycache__/
+*.pyc
+
 # Editor / OS noise
 *.swp
 *~

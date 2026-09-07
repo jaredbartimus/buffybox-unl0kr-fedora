@@ -1,8 +1,12 @@
 # Unl0kr on Fedora — architecture & security notes
 
-Short companion to the packaging. Everything here is drawn from the BuffyBox
-3.6.0 source tree (commit `d0f52495f7f3afa8839eef4b19f43f4ca1243107`) and was
-checked by direct inspection, not assumed.
+Short companion to the packaging. Everything here was checked by direct
+inspection of the BuffyBox 3.6.0 source tree (commit
+`d0f52495f7f3afa8839eef4b19f43f4ca1243107`), not assumed. These notes record
+the revision that was **audited**; they are not regenerated on an upstream
+bump. For the revision actually packaged right now, read `%global
+buffybox_commit` / `%global lvgl_commit` in `buffybox-unl0kr.spec` and
+`sources.sha256` - not this file.
 
 ---
 
@@ -182,20 +186,30 @@ This mirrors `systemd-ask-password-console.path`
   built-in keyboard types into the same UI the touchscreen does. You do not
   need the console agent for that.
 
-### 3.4 Ships disabled
+### 3.4 Enablement is a preset-policy decision
 
-`%systemd_post` honours presets; this package ships no preset, so after
-installation `unl0kr-agent.path` is **inactive and disabled**. Enabling it is
-an explicit `systemctl enable --now unl0kr-agent.path` by the administrator,
-because it changes how boot-time passphrase prompts are served.
+This package ships **no systemd preset**. `%systemd_post` applies the system's
+preset policy on initial install only (`$1 == 1`), so an administrator's later
+`systemctl enable` is preserved across upgrades. On a stock Fedora install
+nothing presets `unl0kr-agent.path`, so it stays **inactive and disabled**
+until an explicit `systemctl enable --now unl0kr-agent.path`, because enabling
+it changes how boot-time passphrase prompts are served.
+
+A derived distribution, or a local `/etc/systemd/system-preset/*.preset`
+drop-in, can preset the unit *on* at install time. That is a deliberate
+downstream choice, not something this package asserts either way - and it is
+worth calling out here because the intended deployment target (Bazzite Deck, a
+Fedora derivative; see README section 10) is exactly that kind of downstream.
 
 ---
 
 ## 4. Supply-chain properties of this package
 
-* Two source inputs, both pinned by commit:
-  `buffybox` `d0f52495f7f3afa8839eef4b19f43f4ca1243107` and
-  `lvgl` `85aa60d18b3d5e5588d7b247abf90198f07c8a63` (upstream `v9.5.0`).
+* Two source inputs, both pinned by commit. The exact commits are `%global
+  buffybox_commit` and `%global lvgl_commit` in `buffybox-unl0kr.spec`; their
+  archive digests are in `sources.sha256`. Both files are updated together by
+  `scripts/check-upstream.py`, which also verifies the buffybox commit against
+  the tag archive's `pax_global_header` before writing.
 * `scripts/fetch-sources.sh` downloads with `curl --fail` and then runs
   `sha256sum -c sources.sha256`, failing closed. It is the only network step,
   and it happens before `rpmbuild`.

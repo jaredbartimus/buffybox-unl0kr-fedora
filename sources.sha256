@@ -6,9 +6,7 @@
 #
 # The sha256 sums below are a tamper check. Auto-generated forge archives are
 # content-immutable but not contractually byte-stable; if a sum ever drifts,
-# verify the tree against the commit SHA before updating this file. As of the
-# 3.6.0 packaging both sums were confirmed stable across repeated downloads
-# from GitLab and GitHub.
+# verify the tree against the commit SHA before updating this file.
 #
 # Verify with:  sha256sum -c sources.sha256
 # (run from the directory containing the downloaded archives)

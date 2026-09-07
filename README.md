@@ -50,9 +50,9 @@ phase, wired into the Bazzite initramfs on an ASUS ROG Ally X.
 | LVGL (bundled, static) | commit `85aa60d18b3d5e5588d7b247abf90198f07c8a63` = **v9.5.0** | GitHub commit archive |
 
 * The **commit SHAs are the identity**. `sources.sha256` additionally records a
-  sha256 for each archive as a tamper check; both were confirmed stable across
-  repeated downloads. If a sum ever drifts, verify the tree against the commit
-  before touching the file.
+  sha256 for each archive as a tamper check. Auto-generated forge archives are
+  content-immutable but not contractually byte-stable; if a sum ever drifts,
+  verify the tree against the commit SHA before touching the file.
 * We do **not** use the BuffyBox 3.6.0 *release asset* - it was published
   without the lvgl submodule (2 MB vs. the expected ~100 MB). We use the tag
   archive plus a separately pinned lvgl archive, the same shape postmarketOS
@@ -204,9 +204,13 @@ only builds whatever `main` says.
 new BuffyBox release (GitLab releases API, never HEAD)
         -> .github/workflows/upstream-check.yml (weekly / manual)
         -> scripts/check-upstream.py --write
-             updates Version, %global lvgl_commit + lvgl_version,
-             sources.sha256 (downloads + hashes both archives),
-             prepends a %changelog entry
+             updates Version, %global buffybox_commit,
+             %global lvgl_commit + lvgl_version, sources.sha256
+             (downloads + hashes both archives) and the section 3
+             pin table; prepends a %changelog entry
+             - takes the release commit from the releases API and
+               verifies it against the tag archive's pax_global_header
+               before writing anything
              - re-resolves the lvgl submodule commit AT THE NEW TAG,
                because a BuffyBox release can move it
         -> opens a pull request (never a direct push, never auto-merge)
@@ -244,8 +248,10 @@ Full detail in [`ARCHITECTURE-SECURITY.md`](ARCHITECTURE-SECURITY.md). In brief:
   `/run/systemd/ask-password/ask.*` (mode 0600) and to open DRM/input devices.
   No setuid, no file capabilities, no sandbox directives (a UI that needs DRM
   master before real-root is mounted). Documented, not hidden.
-* **Ships disabled.** No systemd preset; enabling `unl0kr-agent.path` is an
-  explicit admin action because it changes boot-time passphrase prompting.
+* **Not enabled by default.** The package ships no systemd preset, so
+  `%systemd_post` leaves `unl0kr-agent.path` disabled on a stock Fedora
+  install; enabling it is an explicit admin (or downstream preset-policy)
+  action because it changes boot-time passphrase prompting.
 * **Coexistence.** The password-agent protocol is multi-agent - first valid
   answer wins - and upstream sets no `Conflicts=`. Stock agents do **not** need
   masking; the only real contention is who draws on the screen. Physical-
