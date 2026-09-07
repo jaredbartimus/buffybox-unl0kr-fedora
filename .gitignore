@@ -1,5 +1,6 @@
-# Local Claude Code settings
+# Local Claude Code / MCP tooling state
 /.claude/
+/.serena/
 
 # Downloaded upstream sources (fetched on demand, verified against sources.sha256)
 /build/
