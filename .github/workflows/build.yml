@@ -154,7 +154,7 @@ jobs:
           fi
 
       - name: Build Bazzite derived image and run container smoke test
-        uses: jaredbartimus/bootc-test-harness@1ae0689b14eb1d46b7fa0ea44fa506e7df32a833
+        uses: jaredbartimus/bootc-test-harness@1ae068962c77815607cc59d1264147e2573e9950
         with:
           base-image: ghcr.io/ublue-os/bazzite-deck:stable
           rpms-dir: target-rpms
