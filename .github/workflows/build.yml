@@ -153,28 +153,13 @@ jobs:
             exit 1
           fi
 
-      - name: Resolve base image digest
-        id: resolve-base
-        run: |
-          base="ghcr.io/ublue-os/bazzite-deck:stable"
-          echo "Resolving digest for human-facing base tag: ${base}"
-          digest="$(skopeo inspect "docker://${base}" | jq -r .Digest)"
-          if [ -z "$digest" ] || [ "$digest" = "null" ]; then
-            echo "Error: failed to resolve digest for ${base}" >&2
-            exit 1
-          fi
-          base_image="ghcr.io/ublue-os/bazzite-deck@${digest}"
-          echo "Human-facing tag: ${base}"
-          echo "Resolved immutable reference: ${base_image}"
-          echo "base_image=${base_image}" >> "$GITHUB_OUTPUT"
-
       - name: Build Bazzite derived image and run container smoke test
-        run: |
-          podman build \
-            --build-arg BASE_IMAGE="${{ steps.resolve-base.outputs.base_image }}" \
-            -f ci/Containerfile.bazzite \
-            -t bazzite-deck-test:local \
-            .
+        uses: jaredbartimus/bootc-test-harness@fa71a241f67eabbe87c8837a805d71a9408815d8
+        with:
+          base-image: ghcr.io/ublue-os/bazzite-deck:stable
+          rpms-dir: target-rpms
+          test-script: tests/test-dracut-bazzite.sh
+          test-args: /tmp/work
 
       - name: Disk space (post-build)
         if: always()
