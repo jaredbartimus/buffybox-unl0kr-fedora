@@ -14,9 +14,22 @@ To prevent false confidence and keep CI fast and reliable, verification is separ
 
 * **Fedora 44 synthetic test (`tests/test-dracut-image.sh`)**:
   Validates the generic Fedora RPM and dracut package contract in a clean Fedora 44 container.
-* **Bazzite Deck bootc test (`tests/test-dracut-bazzite.sh` & `ci/Containerfile.bazzite`)**:
-  Validates local RPM installation compatibility against real Bazzite Deck userspace, Bazzite dracut module semantics, password-agent composition, runtime userspace dependencies (libinput, XKB, udev), enablement of `unl0kr-agent.path`, absence of hardcoded DRM card assumptions, and passes `bootc container lint` for structural validation.
-  *Boundary*: Does **not** prove kernel-module inclusion in the generated initramfs or bootability of the image.
+* **Bazzite Deck bootc test (`tests/test-dracut-bazzite.sh`, run via the
+  `jaredbartimus/bootc-test-harness@1ae0689` composite action)**:
+  The harness owns generic bootc image construction, base-tag digest
+  resolution, RPM injection, ephemeral build mounts, test execution, `bootc
+  container lint`, and provenance reporting. This repo supplies only the
+  Unl0kr-specific assertions. Validates local RPM installation compatibility
+  against real Bazzite Deck userspace, Bazzite dracut module semantics,
+  password-agent composition, runtime userspace dependencies (libinput, XKB,
+  udev), enablement of `unl0kr-agent.path`, absence of hardcoded DRM card
+  assumptions, and that `bootc container lint` passes for structural validation.
+  *Boundary*: The synthetic `--no-kernel` dracut run validates userspace /
+  initramfs composition only. This CI does **not** establish Bazzite
+  bootability, VM boot behavior, graphical LUKS unlock, DRM behavior, Plymouth
+  interaction, kernel-module inclusion or integration, or any hardware
+  behavior; `--no-kernel` in particular does not establish Bazzite kernel
+  integration.
 * **QCOW2 Phase 2 (Deferred)**:
   Validates actual virtual firmware/UEFI, kernel, initramfs, and early systemd boot-path smoke test in a CI-friendly VM.
 * **Physical Ally X hardware test**:

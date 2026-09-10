@@ -28,9 +28,11 @@ echo "::: Dracut version: $(dracut --version 2>&1 | head -n1)"
 mkdir -p "$workdir"
 
 echo "::: Constructing synthetic Bazzite initramfs at ${img}..."
-# Note: Stock dracut in Fedora/Bazzite may emit a non-fatal diagnostic
-# "dracut-install: ERROR: installing '/root'" due to stock dracut handling of
-# the /root directory. The test requires dracut to return exit code 0.
+# Note: dracut may emit a non-fatal diagnostic
+# "dracut-install: ERROR: installing '/root'". This is consistent with stock
+# dracut behavior in this synthetic environment; causality has not been
+# established with a same-base stock control. The test requires dracut to
+# return exit code 0.
 dracut \
   --no-kernel \
   --no-hostonly \
