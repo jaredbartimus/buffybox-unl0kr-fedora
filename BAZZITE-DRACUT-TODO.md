@@ -5,7 +5,36 @@ Integration with dracut must be validated to correctly unlock the root LUKS volu
 ## 1. Initramfs graphical capability
 [X] Bazzite stock initramfs contains the kernel modules already observed as required for the Ally X touchscreen/AMDGPU path.
 [X] Synthetic Fedora 44 dracut image contains the packaged libinput and XKB user-space runtime assets.
+[X] Bazzite Deck bootc Phase 1 container composition and synthetic dracut test validate target userspace integration and bootc structural compliance.
 [ ] Verify on the real Ally X initramfs that the NVTK0603 touchscreen enumerates and receives `ID_INPUT_TOUCHSCREEN=1`.
+
+### Test Proof Boundaries
+
+To prevent false confidence and keep CI fast and reliable, verification is separated into distinct tiers:
+
+* **Fedora 44 synthetic test (`tests/test-dracut-image.sh`)**:
+  Validates the generic Fedora RPM and dracut package contract in a clean Fedora 44 container.
+* **Bazzite Deck bootc test (`tests/test-dracut-bazzite.sh`, run via the
+  `jaredbartimus/bootc-test-harness@1ae0689` composite action)**:
+  The harness owns generic bootc image construction, base-tag digest
+  resolution, RPM injection, ephemeral build mounts, test execution, `bootc
+  container lint`, and provenance reporting. This repo supplies only the
+  Unl0kr-specific assertions. Validates local RPM installation compatibility
+  against real Bazzite Deck userspace, Bazzite dracut module semantics,
+  password-agent composition, runtime userspace dependencies (libinput, XKB,
+  udev), enablement of `unl0kr-agent.path`, absence of hardcoded DRM card
+  assumptions, and that `bootc container lint` passes for structural validation.
+  *Boundary*: The synthetic `--no-kernel` dracut run validates userspace /
+  initramfs composition only. This CI does **not** establish Bazzite
+  bootability, VM boot behavior, graphical LUKS unlock, DRM behavior, Plymouth
+  interaction, kernel-module inclusion or integration, or any hardware
+  behavior; `--no-kernel` in particular does not establish Bazzite kernel
+  integration.
+* **QCOW2 Phase 2 (Deferred)**:
+  Validates actual virtual firmware/UEFI, kernel, initramfs, and early systemd boot-path smoke test in a CI-friendly VM.
+* **Physical Ally X hardware test**:
+  Validates actual AMDGPU/eDP DRM ownership and handoff, touchscreen/I2C enumeration and touch events, DRM device selection, Plymouth coexistence, haptic feedback, physical keyboard fallback, and system power/suspend behavior.
+
 
 ## 2. Dracut module: composition implemented, hardware integration not yet validated
 
