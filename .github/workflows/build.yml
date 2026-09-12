@@ -93,8 +93,64 @@ jobs:
   bazzite-bootc-test:
     needs: rpm
     runs-on: ubuntu-26.04
+    env:
+      # Conservative operational threshold, not a proven minimum requirement.
+      # See Issue #8: observed free space before cleanup has been a consistent
+      # ~92 GiB across sampled runs, with ~14 GiB of measured residual
+      # consumption by the full job. 80 GiB leaves a large margin below that
+      # while still sitting far enough below 92 GiB to tolerate routine
+      # runner-image drift before cleanup silently resumes.
+      DISK_CLEANUP_THRESHOLD_GIB: 80
     steps:
+      - name: Measure free disk space
+        id: disk
+        run: |
+          set -euo pipefail
+          threshold_kib=$(( DISK_CLEANUP_THRESHOLD_GIB * 1024 * 1024 ))
+
+          # `|| true` so a df failure cannot kill the step under `set -e`
+          # before an explicit decision has been emitted.
+          avail_kib="$(df --output=avail -k / 2>/dev/null | tail -n 1 | tr -d '[:space:]' || true)"
+
+          # Exact numeric validation rather than stripping non-digits: this is
+          # the safety gate, so malformed output must be classified unknown,
+          # not silently coerced into a number that happens to look plausible.
+          if [[ "$avail_kib" =~ ^[0-9]+$ ]]; then
+            measurement_ok=true
+            avail_report="${avail_kib} KiB ($(( avail_kib / 1024 / 1024 )) GiB)"
+            if [ "$avail_kib" -lt "$threshold_kib" ]; then
+              cleanup_needed=true
+            else
+              cleanup_needed=false
+            fi
+          else
+            measurement_ok=false
+            avail_report="unknown (df on / failed)"
+            cleanup_needed=true
+            echo "::warning::Could not measure free space on /; running cleanup."
+          fi
+
+          printf 'Available on /: %s\n' "$avail_report"
+          printf 'Threshold:      %s KiB (%s GiB)\n' \
+            "$threshold_kib" "$DISK_CLEANUP_THRESHOLD_GIB"
+          printf 'measurement_ok: %s\n' "$measurement_ok"
+          printf 'cleanup_needed: %s\n' "$cleanup_needed"
+
+          {
+            echo "avail_kib=${avail_kib}"
+            echo "measurement_ok=${measurement_ok}"
+            echo "cleanup_needed=${cleanup_needed}"
+          } >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### Runner disk decision"
+            echo "- free on \`/\` before cleanup: ${avail_report}"
+            echo "- threshold: ${threshold_kib} KiB (${DISK_CLEANUP_THRESHOLD_GIB} GiB)"
+            echo "- decision: $([ "$cleanup_needed" = true ] && echo cleanup || echo skip)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Maximize build disk space
+        if: steps.disk.outputs.cleanup_needed != 'false'
         uses: ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6
 
       - uses: actions/checkout@v4
@@ -118,6 +174,9 @@ jobs:
           podman --version
           skopeo --version
           df -h
+          avail_kib="$(df --output=avail -k / | tail -n 1 | tr -d '[:space:]')"
+          echo "Available on / (post-decision): ${avail_kib} KiB ($(( avail_kib / 1024 / 1024 )) GiB)"
+          echo "- free on \`/\` after decision applied: ${avail_kib} KiB ($(( avail_kib / 1024 / 1024 )) GiB)" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Download RPM artifacts
         uses: actions/download-artifact@v4
@@ -167,4 +226,8 @@ jobs:
 
       - name: Disk space (post-build)
         if: always()
-        run: df -h
+        run: |
+          df -h
+          avail_kib="$(df --output=avail -k / | tail -n 1 | tr -d '[:space:]')"
+          echo "Available on / (post-build): ${avail_kib} KiB ($(( avail_kib / 1024 / 1024 )) GiB)"
+          echo "- free on \`/\` post-build: ${avail_kib} KiB ($(( avail_kib / 1024 / 1024 )) GiB)" >> "$GITHUB_STEP_SUMMARY"
