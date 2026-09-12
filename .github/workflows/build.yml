@@ -100,7 +100,7 @@ jobs:
       # consumption by the full job. 80 GiB leaves a large margin below that
       # while still sitting far enough below 92 GiB to tolerate routine
       # runner-image drift before cleanup silently resumes.
-      DISK_CLEANUP_THRESHOLD_GIB: 80
+      DISK_CLEANUP_THRESHOLD_GIB: 200
     steps:
       - name: Measure free disk space
         id: disk
