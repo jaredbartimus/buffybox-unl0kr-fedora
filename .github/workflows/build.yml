@@ -80,15 +80,73 @@ jobs:
           rpmlint -r ci/rpmlintrc \
             build/SRPMS/*.src.rpm build/RPMS/*.rpm | tee rpmlint-built.txt
 
-      - name: Upload artifacts
+      - name: Stage runtime RPMs for handoff
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/runtime-rpms
+
+          # Per-file size evidence for Issue #9, emitted BEFORE the assertions so
+          # a selection failure still shows what build/RPMS actually held. After
+          # the split the Bazzite job only ever sees three files, so this is the
+          # run's only record of what the diagnostic artifact contains. Teed so it
+          # lands in the job log as well as the run summary.
+          {
+            echo "### RPM build outputs"
+            echo '```'
+            find build/SRPMS build/RPMS -type f -printf '%s\t%p\n' | sort -k2
+            find . -maxdepth 1 -name 'rpmlint-*.txt' -printf '%s\t%p\n' | sort -k2
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+          for pkg in unl0kr unl0kr-agent unl0kr-dracut; do
+            mapfile -t matches < <(
+              find build/RPMS -maxdepth 1 -type f -name "${pkg}-[0-9]*.rpm" \
+                ! -name '*-debuginfo-*' ! -name '*-debugsource-*' -print | sort
+            )
+            if [ "${#matches[@]}" -ne 1 ]; then
+              echo "Error: expected exactly 1 match for ${pkg}-[0-9]*.rpm, found ${#matches[@]}: ${matches[*]:-none}" >&2
+              exit 1
+            fi
+            echo "Runtime handoff ${pkg}: ${matches[0]}"
+            cp "${matches[0]}" build/runtime-rpms/
+          done
+
+          count=$(find build/runtime-rpms -maxdepth 1 -name '*.rpm' | wc -l)
+          if [ "$count" -ne 3 ]; then
+            echo "Error: expected exactly 3 runtime RPMs staged, found $count" >&2
+            exit 1
+          fi
+
+          {
+            echo "### Runtime handoff artifact"
+            echo '```'
+            find build/runtime-rpms -type f -printf '%s\t%p\n' | sort -k2
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # RPMs are already compressed (level 6 saved 0.09% on this payload), so
+      # store them as-is. Retention is explicit: ephemeral CI outputs, 7 days.
+      - name: Upload runtime RPM handoff
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-rpms
+          path: build/runtime-rpms/*.rpm
+          retention-days: 7
+          compression-level: 0
+          if-no-files-found: error
+
+      - name: Upload build diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: rpms
+          name: build-diagnostics
           path: |
             build/SRPMS/*.src.rpm
             build/RPMS/*.rpm
             rpmlint-*.txt
+          retention-days: 7
+          compression-level: 0
 
   bazzite-bootc-test:
     needs: rpm
@@ -181,7 +239,7 @@ jobs:
       - name: Download RPM artifacts
         uses: actions/download-artifact@v4
         with:
-          name: rpms
+          name: runtime-rpms
           path: staging-rpms
 
       - name: Stage runtime RPMs
