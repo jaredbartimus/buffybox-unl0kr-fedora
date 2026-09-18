@@ -78,6 +78,7 @@ Source RPM:  buffybox-unl0kr        (name makes the "Unl0kr subset" explicit)
 
 Binary RPMs: unl0kr                 /usr/bin/unl0kr, /etc/unl0kr.conf, man pages
              unl0kr-agent           /usr/libexec/unl0kr-agent + systemd units
+             unl0kr-dracut          dracut module 55unl0kr for opt-in initramfs composition
              unl0kr-debuginfo, unl0kr-agent-debuginfo, buffybox-unl0kr-debugsource
 ```
 
@@ -272,13 +273,41 @@ However, **actual initramfs/boot-time DRM handoff and LUKS unlock remain unteste
 
 ## 11. Not implemented yet
 
-**Bazzite initramfs / dracut deployment.** This repo builds RPMs; it does not
-create a dracut module, touch `/etc/crypttab`, regenerate any initramfs, call
-`systemd-cryptenroll`, change LUKS keyslots, alter GRUB/Secure Boot/TPM, mask
-any stock password agent, or install anything onto a Bazzite host. The full
-open-items list - starting with the `ConditionPathExists=!/run/plymouth/pid`
-issue that stops the agent starting under plymouth - is in
-[`BAZZITE-DRACUT-TODO.md`](BAZZITE-DRACUT-TODO.md).
+**Bazzite initramfs / real-host deployment.** Packaging and CI now cover the
+dracut module and synthetic composition checks, but **real Bazzite host
+integration remains unfinished** and is not proven by CI.
+
+**Implemented in this repo:**
+
+* an `unl0kr-dracut` RPM ships the dracut module (`55unl0kr`) used for
+  initramfs composition;
+* CI runs a **synthetic dracut composition test** (`tests/test-dracut-image.sh`)
+  after the Fedora 44 RPM build - this validates that the module can be added to
+  an initramfs image, not that an Ally X (or any hardware) can boot from it;
+* CI also runs a **Bazzite-derived bootc container test**
+  (`tests/test-dracut-bazzite.sh`) that installs the three runtime RPMs into a
+  container image and repeats dracut composition there - this is not an actual
+  system boot, does not replace a host initramfs, and does not exercise
+  hardware DRM, Plymouth, or LUKS unlock.
+
+**Still not implemented / not proven:**
+
+* installation onto the real Bazzite host;
+* regeneration or replacement of the host's active or pending initramfs;
+* `/etc/crypttab` changes;
+* LUKS keyslot changes;
+* `systemd-cryptenroll` / TPM enrollment;
+* GRUB, Secure Boot, or bootloader changes;
+* masking stock password agents;
+* actual boot-time DRM/Plymouth handoff;
+* real LUKS unlock during boot.
+
+The full open-items list - starting with the
+`ConditionPathExists=!/run/plymouth/pid` condition that prevents
+`unl0kr-agent` from starting while Plymouth owns the screen — is in
+[`BAZZITE-DRACUT-TODO.md`](BAZZITE-DRACUT-TODO.md). That Plymouth guard
+remains part of the unfinished real-host integration work; neither the
+synthetic dracut test nor the bootc container test validates resolving it.
 
 ---
 
@@ -289,6 +318,8 @@ buffybox-unl0kr.spec        the spec (single source of truth for the pins)
 sources.sha256              pinned archive checksums, enforced by fetch-sources.sh
 ARCHITECTURE-SECURITY.md    agent protocol, privilege, passphrase-path notes
 BAZZITE-DRACUT-TODO.md      the deliberately-deferred initramfs phase
+dracut/
+  module-setup.sh           dracut module 55unl0kr (staged into unl0kr-dracut)
 .copr/Makefile              COPR make_srpm entry point
 scripts/
   fetch-sources.sh          download + verify the two pinned archives
@@ -298,10 +329,17 @@ scripts/
   inspect-rpms.sh           the rpm -qp... battery, human-readable
   check-upstream.py         release checker for the update workflow
 tests/
-  expected-files/*.txt      exact file manifests for unl0kr / unl0kr-agent
-  validate-rpms.sh          automated post-build validation
+  expected-files/*.txt      exact file manifests for unl0kr / unl0kr-agent / unl0kr-dracut
+  validate-rpms.sh          automated RPM/package validation (file lists, scriptlets, units)
+  test-dracut-image.sh      synthetic dracut/initramfs composition (Fedora 44 CI)
+  test-dracut-bazzite.sh    dracut composition inside a Bazzite-derived bootc container
 .github/workflows/
-  build.yml                 lint + SRPM + RPM + validate, in fedora:44
+  build.yml                 two jobs: rpm (fedora:44 lint/SRPM/RPM/validate +
+                            synthetic dracut test; stages runtime-rpms handoff with
+                            unl0kr, unl0kr-agent, unl0kr-dracut) and bazzite-bootc-test
+                            (jaredbartimus/bootc-test-harness builds a Bazzite Deck-derived
+                            bootc container from those RPMs, runs test-dracut-bazzite.sh,
+                            and bootc container lint - not a VM, hardware, or real boot test)
   upstream-check.yml         weekly release check -> PR
 ```
 
